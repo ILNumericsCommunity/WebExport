@@ -1,0 +1,13 @@
+<html>
+<head>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+</head>
+<body>
+    <div id='myDiv'></div>
+    <script>
+        var chartJson = '{"traces":[{"type":"scatter","mode":"lines","x":[1,2,3,4],"y":[10,15,13,17]}],"layout":{}}';
+        var chart = JSON.parse(chartJson);
+        Plotly.newPlot('myDiv', chart.traces, chart.layout)
+    </script>
+</body>
+</html>
