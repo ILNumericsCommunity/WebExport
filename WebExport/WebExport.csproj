@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>ILNumerics.Community.WebExport</RootNamespace>
+    <AssemblyName>ILNumerics.Community.WebExport</AssemblyName>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+  <Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
+    <PackageReference Include="ILNumerics.Computing" Version="7.2.41" />
+    <PackageReference Include="ILNumerics.Drawing" Version="7.2.41" />
+    <PackageReference Include="MinVer" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CSPlotlySlim\CSPlotlySlim.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <IncludeAssets>CSPlotlySlim.dll</IncludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

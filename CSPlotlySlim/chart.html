@@ -1,0 +1,14 @@
+<html>
+<head>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_SVG.js'></script>
+</head>
+<body>
+    <div id='plotDiv'></div>
+    <script>
+        var chartJson = '{}';
+        var chart = JSON.parse(chartJson);
+        Plotly.newPlot('plotDiv', chart.data, chart.layout);
+    </script>
+</body>
+</html>
