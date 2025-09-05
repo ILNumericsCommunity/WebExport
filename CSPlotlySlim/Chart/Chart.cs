@@ -1,4 +1,5 @@
-﻿using CSPlotlySlim.Chart.Traces;
+﻿using System;
+using CSPlotlySlim.Chart.Traces;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -23,8 +24,19 @@ public sealed class Chart
 
     public Layout.Layout? Layout { get; set; }
 
-    public string Render(string divName = "chartDiv")
+    public string Render(string? divName = null)
     {
+        //language=html
+        var htmlCdn = $"<html>\r\n<head>\r\n    {RenderPartial(divName)}\r\n    </script>\r\n</body>\r\n</html>";
+
+        return htmlCdn;
+    }
+
+    public string RenderPartial(string? divName = null, bool withJSRefs = true)
+    {
+        if (String.IsNullOrEmpty(divName))
+            divName = "chartDiv-" + Guid.NewGuid().ToString("N");
+
         var namingPolicy = new LowerCaseNamingPolicy();
         var serializeOptions = new JsonSerializerOptions
         {
@@ -40,8 +52,12 @@ public sealed class Chart
         var jsonString = JsonSerializer.Serialize(this, serializeOptions);
 
         //language=html
-        var htmlCdn = $"<html>\r\n<head>\r\n    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>\r\n    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_SVG.js'></script>\r\n</head>\r\n<body>\r\n    <div id='{divName}'></div>\r\n    <script>\r\n        var chartJson = '{jsonString}';\r\n        var chart = JSON.parse(chartJson);\r\n        Plotly.newPlot('{divName}', chart.traces, chart.layout)\r\n    </script>\r\n</body>\r\n</html>";
+        var htmlDiv = $"<div id='{divName}'></div>\r\n    <script>var chartJson = '{jsonString}'; var chart = JSON.parse(chartJson); Plotly.newPlot('{divName}', chart.traces, chart.layout)</script>";
 
-        return htmlCdn;
+        if (!withJSRefs)
+            return htmlDiv;
+
+        //language=html
+        return $"<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>\r\n    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_SVG.js'></script>\r\n    {htmlDiv}";
     }
 }
