@@ -15,9 +15,12 @@ Plotly (https://plotly.com/javascript/) is an open source, high-level JavaScript
 
 **Supported plot types**
 
-As of March 2025 (only) the following plot types are supported:
+As of February 2026 (only) the following plot types are supported:
 
 - LinePlot
+- ErrorBarPlot (y-error only)
+- Surface
+- FastSurface (incomplete)
 
 ## Getting started
 

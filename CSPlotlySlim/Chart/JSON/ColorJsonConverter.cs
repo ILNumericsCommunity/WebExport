@@ -7,10 +7,7 @@ namespace CSPlotlySlim.Chart.JSON;
 
 public class ColorJsonConverter : JsonConverter<Color>
 {
-    public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return ColorTranslator.FromHtml(reader.GetString());
-    }
+    public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => ColorTranslator.FromHtml(reader.GetString());
 
     public override void Write(Utf8JsonWriter writer, Color value, JsonSerializerOptions options)
     {

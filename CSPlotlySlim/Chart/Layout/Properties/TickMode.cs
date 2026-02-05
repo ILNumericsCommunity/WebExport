@@ -7,8 +7,10 @@ public enum TickMode
 {
     [JsonStringEnumMemberName("auto")]
     Auto,
+
     [JsonStringEnumMemberName("linear")]
     Linear,
+
     [JsonStringEnumMemberName("array")]
     Array
 }

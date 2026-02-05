@@ -7,8 +7,10 @@ public enum TickPosition
 {
     [JsonStringEnumMemberName("outside")]
     Outside,
+
     [JsonStringEnumMemberName("inside")]
     Inside,
+
     [JsonStringEnumMemberName("none")]
     None
 }

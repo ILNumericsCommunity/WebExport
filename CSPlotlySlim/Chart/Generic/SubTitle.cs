@@ -4,9 +4,9 @@ namespace CSPlotlySlim.Chart.Generic;
 
 public class SubTitle
 {
-    public required string Text { get; set; }
-
     public Font? Font { get; set; }
+
+    public required string Text { get; set; }
 
     public float? X { get; set; }
 
@@ -16,5 +16,5 @@ public class SubTitle
 
     public YAnchor? YAnchor { get; set; }
 
-    public static implicit operator SubTitle(string text) => new SubTitle {Text = text};
+    public static implicit operator SubTitle(string text) => new SubTitle { Text = text };
 }

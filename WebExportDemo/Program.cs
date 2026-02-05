@@ -27,24 +27,12 @@ internal static class Program
 
     private static void Test()
     {
-        var layout = new Layout
-        {
-            Title = "Line chart",
-            XAxis = new XYZAxis
-            {
-                Title = "X Axis"
-            },
-            YAxis = new XYZAxis
-            {
-                Title = "Y Axis"
-            }
-        };
+        var layout = new Layout { Title = "Line chart", XAxis = new XYZAxis { Title = "X Axis" }, YAxis = new XYZAxis { Title = "Y Axis" } };
 
         var trace1 = new ScatterTrace
         {
-            Mode = ScatterMode.Lines,
-            X = [1, 2, 3, 4],
-            Y = [10, 15, 13, 17],
+            Mode = ScatterMode.Lines, X = [1, 2, 3, 4], Y = [10, 15, 13, 17]
+
             //Marker = new Marker
             //{
             //    Color = Color.Red
@@ -62,7 +50,7 @@ internal static class Program
         };
 
         var chart = new Chart(layout, trace1);
-        
+
         var html = chart.Render("myDiv");
     }
 }

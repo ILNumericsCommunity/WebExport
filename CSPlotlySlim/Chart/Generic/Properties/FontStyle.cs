@@ -7,8 +7,10 @@ public enum FontStyle
 {
     [JsonStringEnumMemberName("normal")]
     Normal,
+
     [JsonStringEnumMemberName("italic")]
     Italic,
+
     [JsonStringEnumMemberName("bold")]
     Bold
 }

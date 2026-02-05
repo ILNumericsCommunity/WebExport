@@ -7,13 +7,13 @@ namespace CSPlotlySlim.Chart.Layout.AxesSubplots;
 
 public class XYZAxis
 {
+    public bool? AutoRange { get; set; }
+
     public Color? Color { get; set; }
 
     public MinorAxis? Minor { get; set; }
 
     public AxisMirror? Mirror { get; set; }
-
-    public bool? AutoRange { get; set; }
 
     public float[]? Range { get; set; }
 
@@ -73,9 +73,9 @@ public class XYZAxis
 
     public int? NTicks { get; set; }
 
-    public string[] TickText { get; set; }
+    public string[]? TickText { get; set; }
 
-    public float[] TickVals { get; set; }
+    public float[]? TickVals { get; set; }
 
     public int? TickWidth { get; set; }
 

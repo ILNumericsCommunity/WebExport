@@ -7,13 +7,14 @@ using CSPlotlySlim.Chart.Traces.Properties;
 using ILNumerics.Drawing;
 using Color = System.Drawing.Color;
 using ILNLegend = ILNumerics.Drawing.Plotting.Legend;
+using Line = CSPlotlySlim.Chart.Generic.Line;
 using Marker = CSPlotlySlim.Chart.Generic.Marker;
 
 namespace ILNumerics.Community.WebExport.Generator.Elements;
 
 public class LinePlotBinder : IPlotBinder
 {
-    #region IPlotBinder Members
+    #region Implementation of IPlotBinder
 
     public void Bind(Group group, Group root, Layout layout, List<Trace> traces)
     {
@@ -35,8 +36,8 @@ public class LinePlotBinder : IPlotBinder
         trace.X = xValues.ToArray();
         trace.Y = yValues.ToArray();
 
-        var hasMarker = (linePlot.Marker.Style != MarkerStyle.None && linePlot.Marker.Visible);
-        var hasLine = (linePlot.Line.Width > 0 && linePlot.Line.Visible);
+        var hasMarker = linePlot.Marker.Style != MarkerStyle.None && linePlot.Marker.Visible;
+        var hasLine = linePlot.Line.Width > 0 && linePlot.Line.Visible;
         if (hasMarker && hasLine)
             trace.Mode = ScatterMode.LinesMarkers;
         else if (hasMarker)
@@ -47,18 +48,12 @@ public class LinePlotBinder : IPlotBinder
         // Marker
         trace.Marker = new Marker
         {
-            Color = linePlot.Marker.Fill.Color ?? linePlot.Line.Color ?? Color.Black,
-            Size = Math.Max(linePlot.Marker.Size / 2, 1),
+            Color = linePlot.Marker.Fill.Color ?? linePlot.Line.Color ?? Color.Black, Size = Math.Max(linePlot.Marker.Size / 2, 1),
             Symbol = linePlot.Marker.Style.ToPlotlyMarkerSymbol()
         };
 
         // Line
-        trace.Line = new CSPlotlySlim.Chart.Generic.Line
-        {
-            Width = linePlot.Line.Width,
-            Color = linePlot.Line.Color ?? Color.Black,
-            Dash = linePlot.Line.DashStyle.ToPlotlyDashStyle()
-        };
+        trace.Line = new Line { Width = linePlot.Line.Width, Color = linePlot.Line.Color ?? Color.Black, Dash = linePlot.Line.DashStyle.ToPlotlyDashStyle() };
 
         // Legend
         var name = $"Line {traces.Count}";

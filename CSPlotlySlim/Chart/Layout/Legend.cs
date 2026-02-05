@@ -1,6 +1,6 @@
-﻿using CSPlotlySlim.Chart.Generic;
+﻿using System.Drawing;
+using CSPlotlySlim.Chart.Generic;
 using CSPlotlySlim.Chart.Layout.Properties;
-using System.Drawing;
 
 namespace CSPlotlySlim.Chart.Layout;
 

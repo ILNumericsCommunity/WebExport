@@ -16,9 +16,9 @@ public class Annotations
 
     public int? Height { get; set; }
 
-    public int? Width { get; set; }
-
     public string[]? Text { get; set; }
+
+    public int? Width { get; set; }
 
     public float[]? X { get; set; }
 

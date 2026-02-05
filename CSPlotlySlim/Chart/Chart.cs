@@ -1,49 +1,71 @@
 ﻿using System;
-using CSPlotlySlim.Chart.Traces;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CSPlotlySlim.Chart.JSON;
-using System.Text;
+using CSPlotlySlim.Chart.Traces;
 
 namespace CSPlotlySlim.Chart;
 
+/// <summary>
+/// Represents a Plotly chart that can be rendered to HTML.
+/// </summary>
+/// <remarks>
+/// A chart consists of one or more <see cref="Trace" /> objects that define the data series,
+/// and an optional <see cref="Layout.Layout" /> that configures the chart appearance.
+/// Use <see cref="Render" /> or <see cref="RenderPartial" /> to generate HTML output.
+/// </remarks>
 public sealed class Chart
 {
-    private const string PlotlyCdn = "https://cdn.plot.ly/plotly-3.1.1.min.js";
     private const string MathJaxCdn = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS-MML_SVG.js";
+    private const string PlotlyCdn = "https://cdn.plot.ly/plotly-3.3.1.min.js";
 
     private readonly JsonSerializerOptions serializerOptions;
 
+    /// <summary>
+    /// Initializes a new chart with the specified traces and default layout.
+    /// </summary>
+    /// <param name="traces">The data traces to display in the chart.</param>
     public Chart(params Trace[] traces)
         : this(new Layout.Layout(), traces)
     {
     }
 
+    /// <summary>
+    /// Initializes a new chart with the specified layout and traces.
+    /// </summary>
+    /// <param name="layout">The layout configuration for the chart.</param>
+    /// <param name="traces">The data traces to display in the chart.</param>
     public Chart(Layout.Layout layout, params Trace[] traces)
     {
         Layout = layout;
         Traces = new List<Trace>(traces);
 
         // Configure JSON serialization options
-        var namingPolicy = new LowerCaseNamingPolicy();
+        var namingPolicy = new PlotlyNamingPolicy();
         serializerOptions = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = namingPolicy,
-            DictionaryKeyPolicy = namingPolicy,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            WriteIndented = false,
-            Converters =
-            {
-                new ColorJsonConverter()
-            }
+            PropertyNamingPolicy = namingPolicy, DictionaryKeyPolicy = namingPolicy, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = false,
+            Converters = { new ColorJsonConverter() }
         };
     }
 
-    public List<Trace> Traces { get; }
-
+    /// <summary>
+    /// Gets or sets the layout configuration for this chart.
+    /// </summary>
     public Layout.Layout? Layout { get; set; }
 
+    /// <summary>
+    /// Gets the list of traces in this chart.
+    /// </summary>
+    public List<Trace> Traces { get; }
+
+    /// <summary>
+    /// Renders the chart as a complete HTML document.
+    /// </summary>
+    /// <param name="divName">Optional ID for the chart container div. If not specified, a unique ID is generated.</param>
+    /// <returns>A complete HTML document string containing the Plotly chart.</returns>
     public string Render(string? divName = null)
     {
         if (String.IsNullOrEmpty(divName))
@@ -55,6 +77,16 @@ public sealed class Chart
         return html;
     }
 
+    /// <summary>
+    /// Renders the chart as an HTML fragment suitable for embedding in an existing page.
+    /// </summary>
+    /// <param name="divName">Optional ID for the chart container div. If not specified, a unique ID is generated.</param>
+    /// <returns>An HTML fragment containing the chart div and initialization script.</returns>
+    /// <remarks>
+    /// The generated fragment includes a self-contained script that loads Plotly and MathJax
+    /// from CDN if they are not already present on the page. Multiple fragments can be safely
+    /// embedded on the same page.
+    /// </remarks>
     public string RenderPartial(string? divName = null)
     {
         if (String.IsNullOrEmpty(divName))

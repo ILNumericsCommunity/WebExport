@@ -7,12 +7,16 @@ public enum AxisMirror
 {
     [JsonStringEnumMemberName("true")]
     True,
+
     [JsonStringEnumMemberName("ticks")]
     Ticks,
+
     [JsonStringEnumMemberName("false")]
     False,
+
     [JsonStringEnumMemberName("all")]
     All,
+
     [JsonStringEnumMemberName("allticks")]
     AllTicks
 }

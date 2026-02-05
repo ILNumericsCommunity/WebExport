@@ -7,10 +7,13 @@ public enum AxisSide
 {
     [JsonStringEnumMemberName("top")]
     Top,
+
     [JsonStringEnumMemberName("bottom")]
     Bottom,
+
     [JsonStringEnumMemberName("left")]
     Left,
+
     [JsonStringEnumMemberName("right")]
     Right
 }

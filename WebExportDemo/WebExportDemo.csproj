@@ -1,16 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <OutputType>WinExe</OutputType>
     <StartupObject>WebExportDemo.Program</StartupObject>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ILNumerics.Computing" Version="7.2.41" />
-    <PackageReference Include="ILNumerics.Drawing" Version="7.2.41" />
-    <PackageReference Include="ILNumerics.Drawing.Platforms" Version="7.2.41" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />
+    <PackageReference Include="ILNumerics.Computing" Version="7.4.16" />
+    <PackageReference Include="ILNumerics.Community.Analyzers" Version="7.3.0.66" />
+    <PackageReference Include="ILNumerics.Drawing" Version="7.4.16" />
+    <PackageReference Include="ILNumerics.Drawing.Platforms" Version="7.4.16" />
+    <PackageReference Include="ILNumerics.Toolboxes.Drawing2" Version="7.4.16" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CSPlotlySlim\CSPlotlySlim.csproj" />
