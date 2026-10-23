@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CSPlotlySlim.Chart.Layout;
 using CSPlotlySlim.Chart.Traces;
@@ -18,6 +18,8 @@ public class SurfaceBinder : IPlotBinder
     /// <inheritdoc />
     public void Bind(Group group, Group root, Layout layout, List<Trace> traces)
     {
+        using var scope = Scope.Enter();
+
         if (root is not PlotCube plotCube)
             return;
         var scaleModes = plotCube.ScaleModes;
@@ -45,12 +47,13 @@ public class SurfaceBinder : IPlotBinder
 
     #region Private
 
-    private static string? ResolveColorscale(object? colormap)
+    /// <summary>Maps supported native color-map names to their Plotly equivalents.</summary>
+    private static string? ResolveColorscale(Colormap? colormap)
     {
         if (colormap == null)
             return null;
 
-        var name = colormap.GetType().Name;
+        var name = colormap.Type.ToString();
         if (name.EndsWith("Colormap", StringComparison.OrdinalIgnoreCase))
             name = name[..^"Colormap".Length];
 
@@ -73,70 +76,64 @@ public class SurfaceBinder : IPlotBinder
         };
     }
 
+    /// <summary>Converts a rectilinear native surface, retaining missing heights as gaps.</summary>
     private static bool TryCreateFromSurface(Surface surface, ScaleModes scaleModes, int traceIndex, out SurfaceTrace trace)
     {
         trace = new SurfaceTrace();
 
         Array<float> positions = surface.Positions; // n x n x 3 (z, x, y)
-        if (isnull(positions))
+        if (isempty(positions))
             return false;
 
         int rows;
         int cols;
         int depth;
-        try
-        {
-            rows = (int) positions.S[0];
-            cols = (int) positions.S[1];
-            depth = (int) positions.S[2];
-        }
-        catch (Exception)
-        {
-            return false;
-        }
+        rows = (int) positions.S[0];
+        cols = (int) positions.S[1];
+        depth = (int) positions.S[2];
 
         if (rows <= 0 || cols <= 0 || depth < 3)
             return false;
 
-        try
+        var xValues = new List<float>(cols);
+        for (var j = 0; j < cols; j++)
         {
-            var xValues = new List<float>(cols);
+            var x = GetScaledValue(positions.GetValue(0, j, 1), scaleModes.XAxisScale);
+            if (!x.HasValue)
+                return false;
+            xValues.Add(x.Value);
+        }
+
+        trace.X = xValues;
+
+        var yValues = new List<float>(rows);
+        for (var i = 0; i < rows; i++)
+        {
+            var y = GetScaledValue(positions.GetValue(i, 0, 2), scaleModes.YAxisScale);
+            if (!y.HasValue)
+                return false;
+            yValues.Add(y.Value);
+        }
+
+        trace.Y = yValues;
+
+        var zMatrix = new List<IList<float?>>(rows);
+        for (var i = 0; i < rows; i++)
+        {
+            var zRow = new List<float?>(cols);
             for (var j = 0; j < cols; j++)
             {
-                var x = GetScaledValue(positions.GetValue(0, j, 1), scaleModes.XAxisScale);
-                if (!x.HasValue)
+                // Plotly's vector X/Y representation requires a rectilinear grid.
+                if (positions.GetValue(i, j, 1) != positions.GetValue(0, j, 1)
+                    || positions.GetValue(i, j, 2) != positions.GetValue(i, 0, 2))
                     return false;
-                xValues.Add(x.Value);
+                var z = GetScaledValue(positions.GetValue(i, j, 0), scaleModes.ZAxisScale);
+                zRow.Add(z);
             }
-            trace.X = xValues;
-
-            var yValues = new List<float>(rows);
-            for (var i = 0; i < rows; i++)
-            {
-                var y = GetScaledValue(positions.GetValue(i, 0, 2), scaleModes.YAxisScale);
-                if (!y.HasValue)
-                    return false;
-                yValues.Add(y.Value);
-            }
-            trace.Y = yValues;
-
-            var zMatrix = new List<IList<float?>>(rows);
-            for (var i = 0; i < rows; i++)
-            {
-                var zRow = new List<float?>(cols);
-                for (var j = 0; j < cols; j++)
-                {
-                    var z = GetScaledValue(positions.GetValue(i, j, 0), scaleModes.ZAxisScale);
-                    zRow.Add(z);
-                }
-                zMatrix.Add(zRow);
-            }
-            trace.Z = zMatrix;
+            zMatrix.Add(zRow);
         }
-        catch (Exception)
-        {
-            return false;
-        }
+
+        trace.Z = zMatrix;
 
         var colorscale = ResolveColorscale(surface.Colormap);
         trace.Colorscale = colorscale ?? "Viridis";
@@ -147,117 +144,112 @@ public class SurfaceBinder : IPlotBinder
         return true;
     }
 
+    /// <summary>Reconstructs a rectangular grid from native fast-surface vertices without inventing missing samples.</summary>
     private static bool TryCreateFromFastSurface(FastSurface fastSurface, ScaleModes scaleModes, int traceIndex, out SurfaceTrace trace)
     {
         trace = new SurfaceTrace();
 
-        Array<float> positions = fastSurface.Fill.Positions.Storage; // 3 (z, x, y) x n or 3 x rows x cols
-        if (isnull(positions))
+        Array<float> positions = fastSurface.Fill.Positions.Storage; // 3 (x, y, z) x n or 3 x rows x cols
+        if (isempty(positions))
             return false;
 
-        try
+        if (positions.S.NumberOfDimensions == 3)
         {
-            if (positions.S.NumberOfDimensions == 3)
+            var depth = (int) positions.S[0];
+            var rows = (int) positions.S[1];
+            var cols = (int) positions.S[2];
+
+            if (depth < 3 || rows <= 0 || cols <= 0)
+                return false;
+
+            var xValues = new List<float>(cols);
+            for (var j = 0; j < cols; j++)
             {
-                var depth = (int) positions.S[0];
-                var rows = (int) positions.S[1];
-                var cols = (int) positions.S[2];
-
-                if (depth < 3 || rows <= 0 || cols <= 0)
+                var x = GetScaledValue(positions.GetValue(0, 0, j), scaleModes.XAxisScale);
+                if (!x.HasValue)
                     return false;
+                xValues.Add(x.Value);
+            }
 
-                var xValues = new List<float>(cols);
+            var yValues = new List<float>(rows);
+            for (var i = 0; i < rows; i++)
+            {
+                var y = GetScaledValue(positions.GetValue(1, i, 0), scaleModes.YAxisScale);
+                if (!y.HasValue)
+                    return false;
+                yValues.Add(y.Value);
+            }
+
+            var zMatrix = new List<IList<float?>>(rows);
+            for (var i = 0; i < rows; i++)
+            {
+                var zRow = new List<float?>(cols);
                 for (var j = 0; j < cols; j++)
                 {
-                    var x = GetScaledValue(positions.GetValue(1, 0, j), scaleModes.XAxisScale);
-                    if (!x.HasValue)
+                    if (positions.GetValue(0, i, j) != positions.GetValue(0, 0, j)
+                        || positions.GetValue(1, i, j) != positions.GetValue(1, i, 0))
                         return false;
-                    xValues.Add(x.Value);
+                    var z = GetScaledValue(positions.GetValue(2, i, j), scaleModes.ZAxisScale);
+                    zRow.Add(z);
                 }
-
-                var yValues = new List<float>(rows);
-                for (var i = 0; i < rows; i++)
-                {
-                    var y = GetScaledValue(positions.GetValue(2, i, 0), scaleModes.YAxisScale);
-                    if (!y.HasValue)
-                        return false;
-                    yValues.Add(y.Value);
-                }
-
-                var zMatrix = new List<IList<float?>>(rows);
-                for (var i = 0; i < rows; i++)
-                {
-                    var zRow = new List<float?>(cols);
-                    for (var j = 0; j < cols; j++)
-                    {
-                        var z = GetScaledValue(positions.GetValue(0, i, j), scaleModes.ZAxisScale);
-                        zRow.Add(z);
-                    }
-                    zMatrix.Add(zRow);
-                }
-
-                trace.X = xValues;
-                trace.Y = yValues;
-                trace.Z = zMatrix;
+                zMatrix.Add(zRow);
             }
-            else
-            {
-                var depth = (int) positions.S[0];
-                var count = (int) positions.S[1];
-                if (depth < 3 || count <= 0)
-                    return false;
 
-                var xValues = new List<float>();
-                var yValues = new List<float>();
-                var xIndex = new Dictionary<float, int>();
-                var yIndex = new Dictionary<float, int>();
-                var zMatrix = new List<IList<float?>>();
-
-                for (var i = 0; i < count; i++)
-                {
-                    var x = GetScaledValue(positions.GetValue(1, i), scaleModes.XAxisScale);
-                    var y = GetScaledValue(positions.GetValue(2, i), scaleModes.YAxisScale);
-                    var z = GetScaledValue(positions.GetValue(0, i), scaleModes.ZAxisScale);
-
-                    if (!x.HasValue || !y.HasValue)
-                        continue;
-
-                    if (!xIndex.TryGetValue(x.Value, out var xi))
-                    {
-                        xi = xValues.Count;
-                        xValues.Add(x.Value);
-                        xIndex.Add(x.Value, xi);
-
-                        foreach (var row in zMatrix)
-                            row.Add(null);
-                    }
-
-                    if (!yIndex.TryGetValue(y.Value, out var yi))
-                    {
-                        yi = yValues.Count;
-                        yValues.Add(y.Value);
-                        yIndex.Add(y.Value, yi);
-
-                        var newRow = new List<float?>(xValues.Count);
-                        for (var j = 0; j < xValues.Count; j++)
-                            newRow.Add(null);
-                        zMatrix.Add(newRow);
-                    }
-
-                    zMatrix[yi][xi] = z;
-                }
-
-                if (xValues.Count == 0 || yValues.Count == 0)
-                    return false;
-
-                trace.X = xValues;
-                trace.Y = yValues;
-                trace.Z = zMatrix;
-            }
+            trace.X = xValues;
+            trace.Y = yValues;
+            trace.Z = zMatrix;
         }
-        catch (Exception)
+        else
         {
-            return false;
+            var depth = (int) positions.S[0];
+            var count = (int) positions.S[1];
+            if (depth < 3 || count <= 0)
+                return false;
+
+            var xValues = new List<float>();
+            var yValues = new List<float>();
+            var xIndex = new Dictionary<float, int>();
+            var yIndex = new Dictionary<float, int>();
+            var values = new Dictionary<(int X, int Y), float?>();
+            for (var i = 0; i < count; i++)
+            {
+                var x = GetScaledValue(positions.GetValue(0, i), scaleModes.XAxisScale);
+                var y = GetScaledValue(positions.GetValue(1, i), scaleModes.YAxisScale);
+                var z = GetScaledValue(positions.GetValue(2, i), scaleModes.ZAxisScale);
+                if (!x.HasValue || !y.HasValue)
+                    continue; // FastSurface includes NaN separator vertices.
+                if (!xIndex.TryGetValue(x.Value, out var xi))
+                {
+                    xi = xValues.Count;
+                    xValues.Add(x.Value);
+                    xIndex.Add(x.Value, xi);
+                }
+                if (!yIndex.TryGetValue(y.Value, out var yi))
+                {
+                    yi = yValues.Count;
+                    yValues.Add(y.Value);
+                    yIndex.Add(y.Value, yi);
+                }
+                if (values.TryGetValue((xi, yi), out var existing) && existing != z)
+                    return false;
+                values[(xi, yi)] = z;
+            }
+
+            // Reject non-rectilinear data before allocating an artificial Cartesian grid.
+            if (values.Count == 0 || (long) xValues.Count * yValues.Count != values.Count)
+                return false;
+            var zMatrix = new List<IList<float?>>(yValues.Count);
+            for (var yi = 0; yi < yValues.Count; yi++)
+            {
+                var row = new List<float?>(xValues.Count);
+                for (var xi = 0; xi < xValues.Count; xi++)
+                    row.Add(values[(xi, yi)]);
+                zMatrix.Add(row);
+            }
+
+            trace.X = xValues;
+            trace.Y = yValues;
+            trace.Z = zMatrix;
         }
 
         var colorscale = ResolveColorscale(fastSurface.Colormap);
@@ -269,6 +261,7 @@ public class SurfaceBinder : IPlotBinder
         return true;
     }
 
+    /// <summary>Converts an internal coordinate to a finite data value, returning null for unrepresentable samples.</summary>
     private static float? GetScaledValue(double value, AxisScale scale)
     {
         if (scale == AxisScale.Logarithmic)

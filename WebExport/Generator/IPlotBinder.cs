@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CSPlotlySlim.Chart.Layout;
 using CSPlotlySlim.Chart.Traces;
 using ILNumerics.Drawing;

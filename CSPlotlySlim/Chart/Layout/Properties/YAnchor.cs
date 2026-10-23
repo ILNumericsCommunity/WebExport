@@ -1,12 +1,11 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CSPlotlySlim.Chart.Layout.Properties;
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
 
 /// <summary>
 /// Defines vertical anchor positions for layout elements.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum YAnchor
 {
     /// <summary>

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CSPlotlySlim.Chart.Traces;
 
@@ -12,6 +12,8 @@ namespace CSPlotlySlim.Chart.Traces;
 [JsonDerivedType(typeof(ScatterTrace))]
 [JsonDerivedType(typeof(Scatter3DTrace))]
 [JsonDerivedType(typeof(SurfaceTrace))]
+[JsonDerivedType(typeof(HeatmapTrace))]
+[JsonDerivedType(typeof(Mesh3DTrace))]
 public abstract class Trace
 {
     /// <summary>

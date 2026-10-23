@@ -1,11 +1,12 @@
-﻿namespace WebExportDemo
+#nullable enable
+namespace WebExportDemo
 {
     partial class WebPlotDemoForm
     {
         /// <summary>
         /// Required designer variable.
         /// </summary>
-        private System.ComponentModel.IContainer components = null;
+        private System.ComponentModel.IContainer? components = null;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -33,7 +34,7 @@
             comboBoxScene = new System.Windows.Forms.ComboBox();
             btnExportPlotly = new System.Windows.Forms.Button();
             splitContainer1 = new System.Windows.Forms.SplitContainer();
-            ilPanel = new ILNumerics.Drawing.Panel();
+            ilPanel = new ILNumerics.Drawing.Controls.WinForms.Panel();
             webView = new Microsoft.Web.WebView2.WinForms.WebView2();
             ((System.ComponentModel.ISupportInitialize)splitContainer).BeginInit();
             splitContainer.Panel1.SuspendLayout();
@@ -119,7 +120,7 @@
             ilPanel.Location = new System.Drawing.Point(0, 0);
             ilPanel.Margin = new System.Windows.Forms.Padding(2);
             ilPanel.Name = "ilPanel";
-            ilPanel.Rectangle = (System.Drawing.RectangleF)resources.GetObject("ilPanel.Rectangle");
+            ilPanel.Rectangle = (System.Drawing.RectangleF)resources.GetObject("ilPanel.Rectangle")!;
             ilPanel.RendererType = ILNumerics.Drawing.RendererTypes.OpenGL;
             ilPanel.ShowUIControls = false;
             ilPanel.Size = new System.Drawing.Size(753, 706);
@@ -147,7 +148,7 @@
             Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             MinimumSize = new System.Drawing.Size(848, 717);
             Name = "WebPlotDemoForm";
-            Text = "Tikz Export Demo";
+            Text = "Web Export Demo";
             Load += XPlotDemoForm_Load;
             splitContainer.Panel1.ResumeLayout(false);
             splitContainer.Panel1.PerformLayout();
@@ -165,12 +166,12 @@
 
         #endregion
 
-        private System.Windows.Forms.SplitContainer splitContainer;
-        private System.Windows.Forms.Button btnExportPlotly;
-        private System.Windows.Forms.SplitContainer splitContainer1;
-        private ILNumerics.Drawing.Panel ilPanel;
-        private System.Windows.Forms.ComboBox comboBoxScene;
-        private Microsoft.Web.WebView2.WinForms.WebView2 webView;
+        private System.Windows.Forms.SplitContainer splitContainer = null!;
+        private System.Windows.Forms.Button btnExportPlotly = null!;
+        private System.Windows.Forms.SplitContainer splitContainer1 = null!;
+        private ILNumerics.Drawing.Controls.WinForms.Panel ilPanel = null!;
+        private System.Windows.Forms.ComboBox comboBoxScene = null!;
+        private Microsoft.Web.WebView2.WinForms.WebView2 webView = null!;
     }
 }
 

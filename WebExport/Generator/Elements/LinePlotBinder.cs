@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CSPlotlySlim.Chart.Layout;
@@ -12,19 +12,29 @@ using Marker = CSPlotlySlim.Chart.Generic.Marker;
 
 namespace ILNumerics.Community.WebExport.Generator.Elements;
 
+/// <summary>Converts line and marker geometry to two-dimensional or three-dimensional Plotly traces.</summary>
 public class LinePlotBinder : IPlotBinder
 {
     #region Implementation of IPlotBinder
 
+    /// <inheritdoc />
     public void Bind(Group group, Group root, Layout layout, List<Trace> traces)
     {
+        using var scope = Scope.Enter();
+
         if (!(group is LinePlot linePlot))
             return;
 
         if (!(root is PlotCube plotCube))
             return;
 
-        var trace = new ScatterTrace();
+        var hasMarker = linePlot.Marker.Style != MarkerStyle.None && linePlot.Marker.Visible;
+        var hasLine = linePlot.Line.Width > 0 && linePlot.Line.Visible;
+        if (!linePlot.Visible || (!hasMarker && !hasLine) || isempty(linePlot.Positions))
+            return;
+
+        // ScatterTrace is the common style/data carrier; a 3D plot adds its Z coordinates below.
+        var trace = new ScatterTrace { ShowLegend = false };
 
         // Trace data
         Array<float> xValues = squeeze(linePlot.Positions[0, full]);
@@ -36,8 +46,6 @@ public class LinePlotBinder : IPlotBinder
         trace.X = xValues.ToArray();
         trace.Y = yValues.ToArray();
 
-        var hasMarker = linePlot.Marker.Style != MarkerStyle.None && linePlot.Marker.Visible;
-        var hasLine = linePlot.Line.Width > 0 && linePlot.Line.Visible;
         if (hasMarker && hasLine)
             trace.Mode = ScatterMode.LinesMarkers;
         else if (hasMarker)
@@ -58,7 +66,7 @@ public class LinePlotBinder : IPlotBinder
         // Legend
         var name = $"Line {traces.Count}";
         var legend = plotCube.First<ILNLegend>();
-        if (legend != null)
+        if (legend?.Visible == true)
         {
             var legendItems = legend.Find<LegendItem>().ToArray();
             var legendItem = legendItems.FirstOrDefault(item => item.ProviderID == linePlot.ID);
@@ -75,7 +83,20 @@ public class LinePlotBinder : IPlotBinder
             trace.ShowLegend = true;
         }
 
-        traces.Add(trace);
+        trace.Name ??= name;
+        if (plotCube.TwoDMode)
+            traces.Add(trace);
+        else
+        {
+            Array<float> zValues = squeeze(linePlot.Positions[2, full]);
+            if (plotCube.ScaleModes.ZAxisScale == AxisScale.Logarithmic)
+                zValues = pow(10f, zValues);
+            traces.Add(new Scatter3DTrace
+            {
+                X = trace.X, Y = trace.Y, Z = zValues.ToArray(), Mode = trace.Mode, Marker = trace.Marker, Line = trace.Line, Name = trace.Name,
+                ShowLegend = trace.ShowLegend
+            });
+        }
     }
 
     #endregion
