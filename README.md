@@ -15,12 +15,19 @@ Plotly (https://plotly.com/javascript/) is an open source, high-level JavaScript
 
 **Supported plot types**
 
-As of February 2026 (only) the following plot types are supported:
+The following plot types are supported:
 
-- LinePlot
-- ErrorBarPlot (y-error only)
-- Surface
-- FastSurface (incomplete)
+- LinePlot (2D and 3D)
+- Surface (rectilinear grids)
+- FastSurface (rectilinear grids)
+- ImageSCPlot (scalar heatmaps, linear 2D axes, color limits and sampled colormap)
+- ContourPlot (contour lines; filled regions and labels are not exported)
+- Lines, LineStrip and Points (indexed or non-indexed 2D/3D geometry; independent segments retain gaps)
+- ErrorBarPlot (vertical/horizontal, asymmetric errors and caps, plus the original line/markers)
+- BoxPlot, Candlestick, StackedAreaPlot and FillArea (fills, whiskers, medians and stacked boundaries)
+- Triangles, TrianglesStrip and TrianglesFan (2D filled polygons and 3D meshes)
+- BarPlot / BarPlotEx (grouped and stacked bars, horizontal and vertical orientation, baselines and custom colors)
+- SplinePlot (interpolated curves with original markers)
 
 ## Getting started
 
@@ -34,33 +41,27 @@ dotnet add package ILNumerics.Community.WebExport
 
 Two main entry points are provided:
 
-- ExportString(scene) - returns the HTML fragment as a string
+- ExportString(scene) - returns a complete HTML document as a string
 - ExportFile(scene, filePath) - writes the HTML to a file (usually with .html extension)
 
 ### Examples
 
 1) Export scene to a string
-   
+
    ```csharp
    // Create or obtain an ILNumerics scene (pseudocode)
    // var scene = new Scene() { ... };
-   
+
    string html = WebExport.ExportString(scene);
    ```
 
 2) Export scene to a file
-   
+
    ```csharp
    string filePath = "webplot.html";
    WebExport.ExportFile(scene, filePath);
    // The file 'webplot.html' now contains the HTML page
    ```
-
-## Notes and limitations
-
-- If the provided Scene cannot be converted into any Plotly traces (for example no supported primitives present), the ExportString method returns an empty string and ExportFile will write an empty file.
-- The project currently focuses on LinePlot conversion. Other ILNumerics primitives may not be supported yet.
-- The generated HTML relies on the Plotly JavaScript library; the exporter embeds the necessary markup for Plotly so the resulting file is standalone.
 
 ### Contributing
 

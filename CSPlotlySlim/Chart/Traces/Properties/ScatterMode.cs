@@ -1,12 +1,11 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CSPlotlySlim.Chart.Traces.Properties;
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
 
 /// <summary>
 /// Defines display modes for scatter traces.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ScatterMode
 {
     /// <summary>

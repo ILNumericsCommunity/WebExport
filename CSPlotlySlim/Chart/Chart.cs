@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,12 +16,20 @@ namespace CSPlotlySlim.Chart;
 /// <remarks>
 /// A chart consists of one or more <see cref="Trace" /> objects that define the data series,
 /// and an optional <see cref="Layout.Layout" /> that configures the chart appearance.
-/// Use <see cref="Render" /> or <see cref="RenderPartial" /> to generate HTML output.
+/// Use <see cref="Render(string)" /> or <see cref="RenderPartial(string)" /> to generate HTML output.
 /// </remarks>
 public sealed class Chart
 {
     private const string MathJaxCdn = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS-MML_SVG.js";
     private const string PlotlyCdn = "https://cdn.plot.ly/plotly-3.3.1.min.js";
+
+    private static readonly Lazy<string> OfflineScript = new(() =>
+    {
+        using var stream = typeof(Chart).Assembly.GetManifestResourceStream("CSPlotlySlim.Plotly.js")
+                           ?? throw new InvalidOperationException("The embedded Plotly bundle is missing.");
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        return reader.ReadToEnd().Replace("</script", "<\\/script", StringComparison.OrdinalIgnoreCase);
+    });
 
     private readonly JsonSerializerOptions serializerOptions;
 
@@ -47,7 +57,7 @@ public sealed class Chart
         serializerOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = namingPolicy, DictionaryKeyPolicy = namingPolicy, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = false,
-            Converters = { new ColorJsonConverter() }
+            Converters = { new ColorJsonConverter(), new FiniteSingleJsonConverter(), new FiniteDoubleJsonConverter() }
         };
     }
 
@@ -66,13 +76,16 @@ public sealed class Chart
     /// </summary>
     /// <param name="divName">Optional ID for the chart container div. If not specified, a unique ID is generated.</param>
     /// <returns>A complete HTML document string containing the Plotly chart.</returns>
-    public string Render(string? divName = null)
+    public string Render(string? divName = null) => Render(divName, HtmlRenderMode.Cdn);
+
+    /// <summary>Renders a complete document using the specified library source.</summary>
+    public string Render(string? divName, HtmlRenderMode mode)
     {
         if (String.IsNullOrEmpty(divName))
             divName = GetId("chartDiv-");
 
         // Return a complete HTML document. RenderPartial will include the necessary JS refs and a guarded initialization script when requested.
-        var html = $"<html>\r\n<head>\r\n    <meta charset='utf-8' />\r\n    <title>Chart</title>\r\n</head>\r\n<body>\r\n    {RenderPartial(divName)}\r\n</body>\r\n</html>";
+        var html = $"<html>\r\n<head>\r\n    <meta charset='utf-8' />\r\n    <title>Chart</title>\r\n</head>\r\n<body>\r\n    {RenderPartial(divName, mode)}\r\n</body>\r\n</html>";
 
         return html;
     }
@@ -87,15 +100,32 @@ public sealed class Chart
     /// from CDN if they are not already present on the page. Multiple fragments can be safely
     /// embedded on the same page.
     /// </remarks>
-    public string RenderPartial(string? divName = null)
+    public string RenderPartial(string? divName = null) => RenderPartial(divName, HtmlRenderMode.Cdn);
+
+    /// <summary>Renders a fragment using CDN, embedded offline, or existing libraries.</summary>
+    public string RenderPartial(string? divName, HtmlRenderMode mode)
     {
+        if (!Enum.IsDefined(mode))
+            throw new ArgumentOutOfRangeException(nameof(mode));
         if (String.IsNullOrEmpty(divName))
             divName = GetId("chartDiv-");
 
+        var divIdJson = JsonSerializer.Serialize(divName);
+        var encodedDivName = WebUtility.HtmlEncode(divName);
         var jsonString = JsonSerializer.Serialize(this, serializerOptions);
 
         // Encode the JSON as base64 so we can safely embed it in a single-quoted script without escaping JSON characters.
         var jsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonString));
+
+        var loader = mode == HtmlRenderMode.Cdn
+            ? $$"""
+                if (!window.__ilnCSPlotly__.loader) {
+                    window.__ilnCSPlotly__.loader = window.Plotly ? Promise.resolve()
+                        : loadScript('{{PlotlyCdn}}')
+                            .then(function() { return loadScript('{{MathJaxCdn}}').catch(function() {}); });
+                }
+                """
+            : "window.__ilnCSPlotly__.loader = window.Plotly ? Promise.resolve() : Promise.reject(new Error('Plotly is unavailable.'));";
 
         // RenderScript includes a dynamic loader that will load Plotly and MathJax only once per page.
         var script = $$"""
@@ -104,10 +134,20 @@ public sealed class Chart
                            window.__ilnCSPlotly__ = window.__ilnCSPlotly__ || {};
 
                            try {
-                               var chart = JSON.parse(atob('{{jsonBase64}}'));
+                               var bytes = Uint8Array.from(atob('{{jsonBase64}}'), function(c) { return c.charCodeAt(0); });
+                               var chart = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
                            } catch (e) {
+                               showExportError();
                                console.error('Failed to parse chart json.', e);
                                return;
+                           }
+
+                           function showExportError() {
+                               var element = document.getElementById({{divIdJson}});
+                               if (element) {
+                                   element.textContent = 'HTML chart could not be loaded.';
+                                   element.setAttribute('role', 'note');
+                               }
                            }
 
                            function loadScript(src) {
@@ -120,29 +160,23 @@ public sealed class Chart
                                });
                            }
 
-                           // Create the loader Promise once; subsequent partials reuse it.
-                           if (!window.__ilnCSPlotly__.loader) {
-                               if (window.Plotly) {
-                                   window.__ilnCSPlotly__.loader = Promise.resolve();
-                               } else {
-                                   window.__ilnCSPlotly__.loader = loadScript('{{PlotlyCdn}}')
-                                         .then(function() { return loadScript('{{MathJaxCdn}}'); });
-                               }
-                           }
+                           {{loader}}
 
                            // Use the loader to render this chart when libs are ready
                            window.__ilnCSPlotly__.loader.then(function() {
                                try {
-                                   Plotly.newPlot('{{divName}}', chart.traces, chart.layout);
+                                   return Plotly.newPlot({{divIdJson}}, chart.traces, chart.layout);
                                } catch (e) {
+                                   showExportError();
                                    console && console.error && console.error('Failed to render chart.', e);
                                }
-                           }).catch(function(e) { console && console.error && console.error(e); });
+                           }).catch(function(e) { showExportError(); console && console.error && console.error(e); });
                        })();
                        </script>
                        """;
 
-        return $"<div id='{divName}'></div>\r\n    {script}";
+        var bundle = mode == HtmlRenderMode.Offline ? "<script>" + OfflineScript.Value + "</script>\r\n" : String.Empty;
+        return bundle + $"<div id='{encodedDivName}'></div>\r\n    {script}";
     }
 
     #region Private

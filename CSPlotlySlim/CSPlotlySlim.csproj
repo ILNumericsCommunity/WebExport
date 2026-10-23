@@ -1,6 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/plotly-3.3.1.min.js" LogicalName="CSPlotlySlim.Plotly.js" />
+    <EmbeddedResource Include="Assets/Plotly-LICENSE.txt" LogicalName="CSPlotlySlim.Plotly.LICENSE" />
+  </ItemGroup>
 </Project>
