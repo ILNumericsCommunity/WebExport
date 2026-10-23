@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CSPlotlySlim.Chart.Layout;
 using CSPlotlySlim.Chart.Layout.AxesSubplots;
 using CSPlotlySlim.Chart.Layout.Properties;
 using CSPlotlySlim.Chart.Traces;
+using ILNumerics.Community.ExportPreparation;
 using ILNumerics.Drawing;
 using Color = System.Drawing.Color;
 using ILNLegend = ILNumerics.Drawing.Plotting.Legend;
@@ -12,14 +13,23 @@ using Title = ILNumerics.Drawing.Title;
 
 namespace ILNumerics.Community.WebExport.Generator.Elements;
 
+/// <summary>Snapshots a visible plot cube into Plotly layout and trace data.</summary>
 public class PlotCubeBinder : IPlotBinder
 {
+    /// <summary>Content omitted or approximated during conversion.</summary>
+    public List<ExportIssue> Issues { get; } = [];
+
     #region Implementation of IPlotBinder
 
+    /// <inheritdoc />
     public void Bind(Group group, Group root, Layout layout, List<Trace> traces)
     {
+        Issues.Clear();
         if (!(group is PlotCube plotCube))
             return;
+
+        using var prepared = new HeadlessPlotPreparation(plotCube);
+        plotCube = prepared.Cube;
 
         // TODO: Font: Family, Size, Bold/Italic, Color
         layout.AutoSize = true;
@@ -27,7 +37,6 @@ public class PlotCubeBinder : IPlotBinder
         // Global
         var title = group.First<Title>();
         layout.Title = new CSPlotlySlim.Chart.Generic.Title { Text = title?.Label?.Text ?? String.Empty };
-        layout.Title = title?.Label?.Text ?? String.Empty;
 
         // XAxis
         var xAxis = new XYZAxis
@@ -70,7 +79,8 @@ public class PlotCubeBinder : IPlotBinder
 
         // Legend
         var legend = plotCube.First<ILNLegend>();
-        if (legend != null)
+        layout.ShowLegend = legend?.Visible == true;
+        if (legend?.Visible == true)
         {
             layout.ShowLegend = true;
             layout.Legend = new Legend
@@ -80,19 +90,9 @@ public class PlotCubeBinder : IPlotBinder
             };
         }
 
-        // Map plots (LinePlot, Surface, etc.)
-
-        // LinePlots
-        foreach (var linePlot in plotCube.Find<LinePlot>())
-            linePlot.Bind<LinePlotBinder>(plotCube, layout, traces);
-
-        // SurfacePlots
-        foreach (var surface in plotCube.Find<Surface>())
-            surface.Bind<SurfaceBinder>(plotCube, layout, traces);
-
-        // FastSurface plots
-        foreach (var fastSurface in plotCube.Find<FastSurface>())
-            fastSurface.Bind<SurfaceBinder>(plotCube, layout, traces);
+        var content = new PlotContentBinder(plotCube, layout, traces, Issues);
+        foreach (var child in plotCube.Plots.Children)
+            content.Bind(child);
     }
 
     #endregion

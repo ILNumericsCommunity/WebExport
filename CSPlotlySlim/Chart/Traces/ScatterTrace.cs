@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Drawing;
 using CSPlotlySlim.Chart.Generic;
 using CSPlotlySlim.Chart.Traces.Properties;
 
@@ -32,6 +33,12 @@ public class ScatterTrace : Trace
     /// Gets or sets the font for text labels.
     /// </summary>
     public Font? TextFont { get; set; }
+
+    /// <summary>Optional Plotly fill mode, e.g. toself for closed polygons.</summary>
+    public string? Fill { get; set; }
+
+    /// <summary>Uniform fill color for polygons.</summary>
+    public Color? FillColor { get; set; }
 
     /// <inheritdoc />
     public override string Type => "scatter";

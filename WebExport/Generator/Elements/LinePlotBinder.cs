@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using CSPlotlySlim.Chart.Generic.Properties;
 using CSPlotlySlim.Chart.Layout;
 using CSPlotlySlim.Chart.Traces;
 using CSPlotlySlim.Chart.Traces.Properties;
@@ -12,19 +13,33 @@ using Marker = CSPlotlySlim.Chart.Generic.Marker;
 
 namespace ILNumerics.Community.WebExport.Generator.Elements;
 
+/// <summary>Converts line and marker geometry to two-dimensional or three-dimensional Plotly traces.</summary>
 public class LinePlotBinder : IPlotBinder
 {
     #region Implementation of IPlotBinder
 
+    /// <inheritdoc />
     public void Bind(Group group, Group root, Layout layout, List<Trace> traces)
     {
+        using var scope = Scope.Enter();
+
         if (!(group is LinePlot linePlot))
             return;
 
         if (!(root is PlotCube plotCube))
             return;
 
-        var trace = new ScatterTrace();
+        var marker = linePlot.Marker;
+        var fillColor = marker.Fill.Visible ? marker.Fill.Color ?? Color.DarkGray : Color.Transparent;
+        var borderColor = marker.Border.Color ?? Color.Black;
+        var borderWidth = marker.Border.Visible && borderColor.A > 0 ? Math.Max(marker.Border.Width, 0) : 0;
+        var hasMarker = marker.Style != MarkerStyle.None && marker.Visible && marker.Size > 0 && (fillColor.A > 0 || borderWidth > 0);
+        var hasLine = linePlot.Line.Width > 0 && linePlot.Line.Visible;
+        if (!linePlot.Visible || (!hasMarker && !hasLine) || isempty(linePlot.Positions))
+            return;
+
+        // ScatterTrace is the common style/data carrier; a 3D plot adds its Z coordinates below.
+        var trace = new ScatterTrace { ShowLegend = false };
 
         // Trace data
         Array<float> xValues = squeeze(linePlot.Positions[0, full]);
@@ -36,8 +51,6 @@ public class LinePlotBinder : IPlotBinder
         trace.X = xValues.ToArray();
         trace.Y = yValues.ToArray();
 
-        var hasMarker = linePlot.Marker.Style != MarkerStyle.None && linePlot.Marker.Visible;
-        var hasLine = linePlot.Line.Width > 0 && linePlot.Line.Visible;
         if (hasMarker && hasLine)
             trace.Mode = ScatterMode.LinesMarkers;
         else if (hasMarker)
@@ -48,8 +61,9 @@ public class LinePlotBinder : IPlotBinder
         // Marker
         trace.Marker = new Marker
         {
-            Color = linePlot.Marker.Fill.Color ?? linePlot.Line.Color ?? Color.Black, Size = Math.Max(linePlot.Marker.Size / 2, 1),
-            Symbol = linePlot.Marker.Style.ToPlotlyMarkerSymbol()
+            Color = fillColor, Size = Math.Max(marker.Size, 0),
+            Symbol = !plotCube.TwoDMode && Requires3DMarkerFallback(marker.Style) ? Symbol.Circle : marker.Style.ToPlotlyMarkerSymbol(),
+            Line = new Line { Color = borderColor, Width = borderWidth }
         };
 
         // Line
@@ -58,7 +72,7 @@ public class LinePlotBinder : IPlotBinder
         // Legend
         var name = $"Line {traces.Count}";
         var legend = plotCube.First<ILNLegend>();
-        if (legend != null)
+        if (legend?.Visible == true)
         {
             var legendItems = legend.Find<LegendItem>().ToArray();
             var legendItem = legendItems.FirstOrDefault(item => item.ProviderID == linePlot.ID);
@@ -75,8 +89,26 @@ public class LinePlotBinder : IPlotBinder
             trace.ShowLegend = true;
         }
 
-        traces.Add(trace);
+        trace.Name ??= name;
+        if (plotCube.TwoDMode)
+            traces.Add(trace);
+        else
+        {
+            Array<float> zValues = squeeze(linePlot.Positions[2, full]);
+            if (plotCube.ScaleModes.ZAxisScale == AxisScale.Logarithmic)
+                zValues = pow(10f, zValues);
+            traces.Add(new Scatter3DTrace
+            {
+                X = trace.X, Y = trace.Y, Z = zValues.ToArray(), Mode = trace.Mode, Marker = trace.Marker, Line = trace.Line, Name = trace.Name,
+                ShowLegend = trace.ShowLegend
+            });
+        }
     }
+
+    /// <summary>Identifies symbols unavailable in Plotly's scatter3d renderer.</summary>
+    internal static bool Requires3DMarkerFallback(MarkerStyle style)
+        => style is MarkerStyle.TriangleUp or MarkerStyle.TriangleDown
+            or MarkerStyle.TriangleLeft or MarkerStyle.TriangleRight or MarkerStyle.Custom;
 
     #endregion
 }

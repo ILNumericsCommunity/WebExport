@@ -2,4 +2,5 @@
   <Project Path="CSPlotlySlim/CSPlotlySlim.csproj" />
   <Project Path="WebExport/WebExport.csproj" />
   <Project Path="WebExportDemo/WebExportDemo.csproj" />
+  <Project Path="WebExport.Tests/WebExport.Tests.csproj" />
 </Solution>

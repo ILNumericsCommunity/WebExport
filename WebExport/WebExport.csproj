@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>ILNumerics.Community.WebExport</RootNamespace>
@@ -11,11 +11,11 @@
     </ItemGroup>
   </Target>
   <ItemGroup>
-    <PackageReference Include="ILNumerics.Computing" Version="7.4.16" />
-    <PackageReference Include="ILNumerics.Community.Analyzers" Version="7.3.0.66" />
-    <PackageReference Include="ILNumerics.Drawing" Version="7.4.16" />
-    <PackageReference Include="ILNumerics.Toolboxes.Drawing2" Version="7.4.16" />
-    <PackageReference Include="MinVer" Version="7.0.0">
+    <PackageReference Include="ILNumerics.Computing" Version="7.4.62" />
+    <PackageReference Include="ILNumerics.Community.Analyzers" Version="7.7.0.298" PrivateAssets="all" />
+    <PackageReference Include="ILNumerics.Drawing" Version="7.4.62" />
+    <PackageReference Include="ILNumerics.Toolboxes.Drawing2" Version="7.4.62" />
+    <PackageReference Include="MinVer" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -25,5 +25,11 @@
       <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
       <IncludeAssets>CSPlotlySlim.dll</IncludeAssets>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/HeadlessPlotPreparation.cs" Link="Shared/HeadlessPlotPreparation.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="WebExport.Tests" />
   </ItemGroup>
 </Project>
